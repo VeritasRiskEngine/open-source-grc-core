@@ -1,4 +1,4 @@
-<div align="center">
+<div style="text-align: center;">
   <img src="Screenshot 2026-11-01 044405.png" alt="VeritasRiskEngine V3 Logo" width="200"/>
 </div>
 
