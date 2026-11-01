@@ -1,6 +1,6 @@
-<div style="text-align: center;">
-  <img src="Screenshot 2026-11-01 044405.png" alt="VeritasRiskEngine V3 Logo" width="200"/>
-</div>
+<p align="center">
+  <img src="Screenshot 2026-11-01 044405.png" alt="VeritasRiskEngine V3 Logo" width="200">
+</p>
 
 # open-source-grc-core
 Open-source GRC engineering frameworks, security compliance baselines, and structured risk management models.
