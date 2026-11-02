@@ -239,3 +239,117 @@ END OF README
 ===============================================================================
 
 
+
+
+
+
+
+# HIPAA Agentic AI Control Framework (`HIPAA-Agentic-AI-Controls`)
+
+An open-source, production-grade security and governance framework designed to enforce strict HIPAA Privacy and Security Rule compliance (45 CFR Parts 160 and 164) for autonomous AI agents and clinical workflows.
+
+---
+
+## Core Regulatory Principles
+
+1. **Zero Autonomous Access:** AI agents are strictly prohibited from direct, unmonitored access to Protected Health Information (PHI) or Electronic Protected Health Information (ePHI).
+2. **Iron-Clad Human-in-the-Loop (HITL):** Every action involving data queries, patient communications, or external disclosures requires a cryptographically signed human approval token.
+3. **Automated Safe Harbor De-identification:** Incoming and outgoing payloads are systematically scrubbed for the 18 HIPAA Safe Harbor identifiers before touching model context windows.
+4. **Mandatory BAA Enforcement:** Runtime execution halts automatically if a valid, active Business Associate Agreement (BAA) is not verified for the target environment.
+5. **Immutable Audit Trails:** Complies with HIPAA § 164.312(b) audit controls via Write-Once-Read-Many (WORM)-aligned event logging.
+
+---
+
+## Repository Structure
+
+```text
+HIPAA-Agentic-AI-Controls/
+├── README.md
+├── LICENSE
+├── requirements.txt
+├── docs/
+│   ├── HIPAA_Control_Mapping.md
+│   ├── Agent_Authority_Model.md
+│   └── Architecture.md
+├── controls/
+│   ├── __init__.py
+│   ├── phi_detection.py
+│   ├── human_approval.py
+│   ├── permission_validator.py
+│   └── audit_logging.py
+├── policies/
+│   └── agent_permissions.yaml
+├── tests/
+│   ├── __init__.py
+│   ├── test_phi_detection.py
+│   └── test_access_control.py
+└── examples/
+    └── healthcare_agent_demo.py
+
+
+
+
+
+## Central Governing Thesis
+
+> **HIPAA compliance for agentic AI requires more than securing access to electronic health information. It requires governing the authority delegated to autonomous systems, controlling the actions they can perform, and maintaining accountability for their interactions with clinical environments.**
+
+---
+
+## Technical Control & 45 CFR Security Rule Matrix
+
+| HIPAA Security Rule Provision | CFR Reference | Technical Safeguard / Agentic AI Control | Repository Execution Module |
+| :--- | :--- | :--- | :--- |
+| **Security Management & Risk Analysis** | 45 CFR § 164.308(a)(1) | Risk analysis, risk register scoring, and activity review for AI tools | `controls/risk_analysis.py` |
+| **Information Access Management** | 45 CFR § 164.308(a)(4) | Bound agent credentials, delegated permissions, and identity verification | `controls/identity.py` |
+| **Access Control & Least Privilege** | 45 CFR § 164.312(a)(1) | PHI access validator enforcing patient/record-level RB
+
+
+
+
+
+## Central Governing Thesis
+
+> **HIPAA compliance for agentic AI requires more than securing access to electronic health information. It requires governing the authority delegated to autonomous systems, controlling the actions they can perform, and maintaining accountability for their interactions with clinical environments.**
+
+---
+
+## Technical Control & 45 CFR Security Rule Matrix
+
+| HIPAA Security Rule Provision | CFR Reference | Technical Safeguard / Agentic AI Control | Repository Execution Module |
+| :--- | :--- | :--- | :--- |
+| **Security Management & Risk Analysis** | 45 CFR § 164.308(a)(1) | Risk analysis, risk register scoring, and activity review for AI tools | `controls/risk_analysis.py` |
+| **Information Access Management** | 45 CFR § 164.308(a)(4) | Bound agent credentials, delegated permissions, and identity verification | `controls/identity.py` |
+| **Access Control & Least Privilege** | 45 CFR § 164.312(a)(1) | PHI access validator enforcing patient/record-level RB
+
+
+
+
+
+HIPAA-Agentic-AI-Controls/
+├── README.md                          # Regulatory vision & 5-question authority thesis
+├── LICENSE                            # MIT License
+├── requirements.txt                   # Dependency definitions
+├── docs/
+│   ├── references.md                  # Statutory citations (45 CFR Parts 160/164) & HHS guidance
+│   ├── HIPAA_Control_Mapping.md       # Full 45 CFR Subpart C mapping matrix
+│   └── Risk_Assessment_Template.md    # § 164.308(a)(1) Agentic risk inventory framework
+├── controls/
+│   ├── agent_identity.py              # § 164.312(d) Identity & credential binding
+│   ├── access_control.py              # § 164.312(a)(1) Authority & PHI access validator
+│   ├── phi_detection.py               # § 164.514(b) Outbound Safe Harbor scrubber
+│   ├── clinical_action_gate.py        # § 164.312(c) Record integrity & action scope gate
+│   ├── human_approval.py              # Cryptographic human sign-off gate
+│   ├── vendor_assessment.py           # § 164.314 BAA & cloud integration validator
+│   └── audit_logging.py               # § 164.312(b) Immutable WORM audit logger
+├── policies/
+│   └── agent_permissions.yaml         # Organization risk tolerance & tool scopes
+├── tests/
+│   ├── test_access_control.py         # Authority boundary & least privilege tests
+│   ├── test_phi_detection.py          # Safe Harbor pattern tests
+│   └── test_clinical_action_gate.py   # Draft vs. Finalize integrity tests
+└── examples/
+    └── healthcare_agent_demo.py       # End-to-end clinical workflow execution
+
+
+
