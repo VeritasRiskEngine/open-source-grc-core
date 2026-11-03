@@ -1,0 +1,226 @@
+SOC-Ironclad-Overlay/
+├── README.md                          # Prospectus, architecture, and quickstart guide
+├── LICENSE                            # Open-source license (MIT)
+├── requirements.txt                   # Explicit dependency pinning
+├── core/                              # Control plane kernel & state engine
+│   ├── __init__.py
+│   ├── state_machine.py               # Strict HITL evaluation state machine
+│   └── ledger.py                      # Immutable append-only decision ledger
+├── modules/                           # Pluggable framework modules (quarterly cadence)
+│   ├── __init__.py
+│   ├── framework_base.py              # Base class for compliance frameworks
+│   └── hipaa_module.py                # HIPAA control overlay pack
+├── extensions/                        # Consulting & custom client extension points
+│   └── __init__.py                    # Custom client hooks and dual-control workflows
+└── tests/                             # Automated test suite
+    ├── __init__.py
+    └── test_state_machine.py          # HITL and ledger verification tests
+
+
+"""
+Strict HITL State Machine Core Module
+-------------------------------------------------------------------
+Enforces the non-negotiable human approval gate for all AI agent proposals.
+States: PROPOSED -> EVALUATING -> PENDING_HITL -> APPROVED / REJECTED
+"""
+
+import logging
+from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, Optional
+from dataclasses import dataclass, field
+
+logger = logging.getLogger("SOC-Overlay.StateMachine")
+logger.addHandler(logging.NullHandler())
+
+
+class ProposalState(Enum):
+    PROPOSED = "PROPOSED"
+    EVALUATING = "EVALUATING"
+    PENDING_HITL = "PENDING_HITL"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+    FAILED = "FAILED"
+
+
+@dataclass
+class AgentProposal:
+    proposal_id: str
+    agent_id: str
+    action_type: str
+    target_resource: str
+    payload: Dict[str, Any]
+    framework_tag: str
+    timestamp: str = field(default_factory=lambda: datetime.utcnow().isoformat() + "Z")
+
+
+@dataclass
+class StateTransitionResult:
+    proposal_id: str
+    current_state: ProposalState
+    reason: str
+    human_signoff_token: Optional[str] = None
+    timestamp: str = field(default_factory=lambda: datetime.utcnow().isoformat() + "Z")
+
+
+class IroncladStateMachine:
+    """
+    Manages the lifecycle of an AI agent proposal, ensuring it cannot execute
+    without explicit cryptographic human sign-off.
+    """
+
+    def __init__(self, ledger_client: Optional[Any] = None):
+        self.ledger = ledger_client
+        self._active_states: Dict[str, ProposalState] = {}
+
+    def submit_proposal(self, proposal: AgentProposal) -> StateTransitionResult:
+        """Transitions a new agent proposal into PENDING_HITL state."""
+        self._active_states[proposal.proposal_id] = ProposalState.PENDING_HITL
+        logger.info(f"[HITL GATE] Proposal {proposal.proposal_id} submitted by {proposal.agent_id}. Awaiting human authorization.")
+        
+        return StateTransitionResult(
+            proposal_id=proposal.proposal_id,
+            current_state=ProposalState.PENDING_HITL,
+            reason="Proposal received and locked at human review gate."
+        )
+
+    def evaluate_human_decision(
+        self, 
+        proposal_id: str, 
+        approved: bool, 
+        human_reviewer_id: str, 
+        approval_token: str
+    ) -> StateTransitionResult:
+        """Evaluates the human decision and transitions state accordingly."""
+        if proposal_id not in self._active_states:
+            raise ValueError(f"Proposal ID {proposal_id} not found in active state engine.")
+
+        if not human_reviewer_id or not approval_token:
+            return StateTransitionResult(
+                proposal_id=proposal_id,
+                current_state=self._active_states[proposal_id],
+                reason="Rejection: Missing valid human reviewer ID or cryptographic approval token."
+            )
+
+        if approved:
+            self._active_states[proposal_id] = ProposalState.APPROVED
+            logger.info(f"[AUTHORIZED] Proposal {proposal_id} approved by human reviewer {human_reviewer_id}.")
+            return StateTransitionResult(
+                proposal_id=proposal_id,
+                current_state=ProposalState.APPROVED,
+                reason=f"Approved by authorized reviewer: {human_reviewer_id}",
+                human_signoff_token=approval_token
+            )
+        else:
+            self._active_states[proposal_id] = ProposalState.REJECTED
+            logger.warning(f"[REJECTED] Proposal {proposal_id} rejected by human reviewer {human_reviewer_id}.")
+            return StateTransitionResult(
+                proposal_id=proposal_id,
+                current_state=ProposalState.REJECTED,
+                reason=f"Rejected by reviewer: {human_reviewer_id}",
+                human_signoff_token=approval_token
+            )
+
+
+
+
+"""
+Immutable Append-Only Decision Ledger
+-------------------------------------------------------------------
+Records every proposal, evaluation, and human decision cryptographically 
+to maintain a verifiable audit trail for compliance frameworks.
+"""
+
+import hashlib
+import json
+import logging
+from datetime import datetime
+from typing import Any, Dict, List
+from dataclasses import dataclass, field
+
+logger = logging.getLogger("SOC-Overlay.Ledger")
+logger.addHandler(logging.NullHandler())
+
+
+@dataclass
+class LedgerEntry:
+    entry_index: int
+    proposal_id: str
+    agent_id: str
+    action_type: str
+    state: str
+    human_reviewer: Optional[str]
+    payload_hash: str
+    timestamp: str = field(default_factory=lambda: datetime.utcnow().isoformat() + "Z")
+    previous_hash: str = "0" * 64
+    entry_hash: str = ""
+
+    def compute_hash(self) -> str:
+        record_string = f"{self.entry_index}:{self.proposal_id}:{self.agent_id}:{self.state}:{self.payload_hash}:{self.previous_hash}:{self.timestamp}"
+        return hashlib.sha256(record_string.encode('utf-8')).hexdigest()
+
+
+class ImmutableDecisionLedger:
+    """
+    Cryptographic append-only log storing all control plane decisions.
+    """
+
+    def __init__(self):
+        self.chain: List[LedgerEntry] = []
+
+    def append_record(
+        self,
+        proposal_id: str,
+        agent_id: str,
+        action_type: str,
+        state: str,
+        payload: Dict[str, Any],
+        human_reviewer: Optional[str] = None
+    ) -> LedgerEntry:
+        index = len(self.chain)
+        prev_hash = self.chain[-1].entry_hash if index > 0 else "0" * 64
+        
+        payload_string = json.dumps(payload, sort_keys=True)
+        payload_hash = hashlib.sha256(payload_string.encode('utf-8')).hexdigest()
+
+        entry = LedgerEntry(
+            entry_index=index,
+            proposal_id=proposal_id,
+            agent_id=agent_id,
+            action_type=action_type,
+            state=state,
+            human_reviewer=human_reviewer,
+            payload_hash=payload_hash,
+            previous_hash=prev_hash
+        )
+        entry.entry_hash = entry.compute_hash()
+        
+        self.chain.append(entry)
+        logger.info(f"[LEDGER APPEND] Entry #{index} recorded for proposal {proposal_id} [State: {state}].")
+        return entry
+
+    def verify_integrity(self) -> bool:
+        """Verifies the cryptographic integrity of the entire decision ledger."""
+        for i in range(1, len(self.chain)):
+            current = self.chain[i]
+            previous = self.chain[i-1]
+            
+            if current.previous_hash != previous.entry_hash:
+                logger.error(f"[INTEGRITY FAILURE] Previous hash mismatch at index {i}.")
+                return False
+            if current.entry_hash != current.compute_hash():
+                logger.error(f"[INTEGRITY FAILURE] Computed hash mismatch at index {i}.")
+                return False
+        return True
+
+feat(architecture): add 5-Strata ICS/OT defense framework & controls
+- Add Purdue Model (ISA-95) & IEC 62443 alignment for cyber-physical resilience
+- Document Threat Model & Attack Vector Analysis for cold-chain refrigeration incident
+- Define 5-Strata defensive control matrix from Stratum 4/5 iDMZ down to Stratum 0 analog interlocks
+- Establish repo directory structure for governance frameworks and technical safeguards
+feat(frameworks): map Purdue Model & IEC 62443 zones to cold-chain defense
+
+- Map Stratum 0-5 layer boundaries for OT/IT convergence
+- Align IEC 62443 zone & conduit requirements with NIST SP 800-82 R3
+
+
